@@ -17,6 +17,7 @@ export function useBoardSync() {
 
   // Efeito 2: quando a internet volta, envia o que ficou pendente na hora.
   useEffect(() => {
+    if (!syncEnabled) return;
     function handleOnline() {
       void syncEngine.flush();
     }

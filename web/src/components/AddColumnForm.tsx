@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
+import { TITLE_LIMITS } from "@taskflow/shared";
 import { useBoardStore } from "../store/boardStore.ts";
 
 export function AddColumnForm() {
@@ -8,9 +9,8 @@ export function AddColumnForm() {
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    useBoardStore.getState().addColumn(title);
-    setTitle("");
-    setIsOpen(false);
+    // addColumn devolve null se o título for inválido: aí o formulário fica aberto.
+    if (useBoardStore.getState().addColumn(title)) close();
   }
 
   function close() {
@@ -41,6 +41,7 @@ export function AddColumnForm() {
         onChange={(event) => setTitle(event.target.value)}
         onKeyDown={(event) => event.key === "Escape" && close()}
         className="w-full rounded-xl border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-ink focus:ring-2 focus:ring-brand-500"
+        maxLength={TITLE_LIMITS.column}
         placeholder="Nome da coluna"
         aria-label="Nome da nova coluna"
       />

@@ -208,16 +208,45 @@ describe('createSyncEngine', () => {
     expectEmptyOutbox();
   });
 
-  it('mantém erro 409 na fila com status error e permite retry', async () => {
-    repo.failWith(new ApiError(409, 'Conflito'));
+  it('409 reenvia a coluna e as etiquetas do cartão antes e tenta de novo', async () => {
+    const upsertCard = repo.upsertCard.bind(repo);
+    vi.spyOn(repo, 'upsertCard').mockRejectedValueOnce(new ApiError(409, 'Coluna ou etiqueta inexistente'))
+      .mockImplementation(upsertCard);
+    const id = addCard();
+    const columnId = useBoardStore.getState().cards[id]?.columnId;
+    await vi.advanceTimersByTimeAsync(100);
+    await vi.advanceTimersByTimeAsync(10); // reenvio imediato após reenfileirar
+    expect(repo.calls).toEqual([`upsertColumn:${columnId}`, `upsertCard:${id}`]);
+    expect(useSyncStore.getState().status).toBe('idle');
+    expectEmptyOutbox();
+  });
+
+  it('409 persistente fica na fila com status error, sem laço infinito', async () => {
+    vi.spyOn(repo, 'upsertCard').mockRejectedValue(new ApiError(409, 'Conflito'));
     const id = addCard();
     await vi.advanceTimersByTimeAsync(100);
+    await vi.advanceTimersByTimeAsync(10);
     expect(useSyncStore.getState()).toMatchObject({ status: 'error', pending: 1, lastError: 'Conflito' });
     expect(localStorage.getItem('taskflow-outbox')).toBe(JSON.stringify([{ kind: 'card', id }]));
-    repo.failWith(undefined);
-    await vi.advanceTimersByTimeAsync(2_000);
-    expect(repo.calls).toEqual([`upsertCard:${id}`, `upsertCard:${id}`]);
-    expectEmptyOutbox();
+    expect(repo.calls.filter((call) => call.startsWith('upsertColumn'))).toHaveLength(1);
+  });
+
+  it('não aplica o quadro do servidor se o usuário editou durante o download', async () => {
+    let release!: () => void;
+    const fetchBoard = repo.fetchBoard.bind(repo);
+    vi.spyOn(repo, 'fetchBoard').mockImplementation(async () => {
+      await new Promise<void>((resolve) => { release = resolve; });
+      return fetchBoard();
+    });
+    const loading = engine.loadFromServer();
+    await vi.advanceTimersByTimeAsync(0);
+    const id = addCard();
+    release();
+    await loading;
+    expect(useBoardStore.getState().cards[id]).toBeDefined();
+    await vi.advanceTimersByTimeAsync(100);
+    expect(repo.calls).toContain(`upsertCard:${id}`);
+    expect(repo.calls).not.toContain(`deleteCard:${id}`);
   });
 
   it('pause enfileira mudanças sem enviar e resume envia', async () => {

@@ -16,6 +16,7 @@ cardsRouter.put("/:id", async (req, res) => {
   const body = parseBody(UpsertCardSchema, req);
   const tagIds = [...new Set(body.tagIds)].sort();
   const client = await pool.connect();
+  let failure: unknown;
   try {
     await client.query("begin");
     const result = await client.query<CardRow>(
@@ -43,10 +44,13 @@ cardsRouter.put("/:id", async (req, res) => {
     await client.query("commit");
     res.json(card);
   } catch (error: unknown) {
-    await client.query("rollback");
+    failure = error;
+    // Se o rollback também falhar (conexão caída), não esconde o erro original.
+    await client.query("rollback").catch(() => undefined);
     throw error;
   } finally {
-    client.release();
+    // release(erro) descarta a conexão em vez de devolvê-la quebrada ao pool.
+    client.release(failure instanceof Error ? failure : undefined);
   }
 });
 
