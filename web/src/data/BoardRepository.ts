@@ -1,4 +1,4 @@
-import type { BoardSnapshot, Card, CardId, Column, ColumnId, Tag, TagId } from "@taskflow/shared";
+import type { BoardSnapshot, Card, CardEvent, CardId, Column, ColumnId, Tag, TagId } from "@taskflow/shared";
 
 /**
  * Contrato da camada de dados (docs/PLANEJAMENTO.md §6.2).
@@ -18,6 +18,8 @@ export interface BoardRepository {
   deleteCard(id: CardId): Promise<void>;
   upsertTag(tag: Tag): Promise<void>;
   deleteTag(id: TagId): Promise<void>;
+  /** Histórico de movimentação do cartão (criação e trocas de coluna), do mais antigo ao mais recente. */
+  fetchCardHistory(id: CardId): Promise<CardEvent[]>;
 }
 
 /** Sem conexão com o servidor (offline, servidor fora do ar, DNS...). Vale tentar de novo. */

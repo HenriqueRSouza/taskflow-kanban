@@ -44,9 +44,10 @@ describe('HttpBoardRepository', () => {
     await repo.upsertCard(card);
     expect(fetchMock).toHaveBeenCalledExactlyOnceWith(`/api/cards/${id}`, {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      // sem o id (vai na URL); com as datas, para o histórico no banco
       body: JSON.stringify({
         columnId, title: card.title, description: card.description,
-        tagIds: card.tagIds, position: card.position,
+        tagIds: card.tagIds, position: card.position, createdAt: card.createdAt, updatedAt: card.updatedAt,
       }),
     });
   });

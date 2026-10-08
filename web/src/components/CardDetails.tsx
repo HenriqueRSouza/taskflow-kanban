@@ -3,6 +3,7 @@ import type { MouseEvent } from "react";
 import { TITLE_LIMITS } from "@taskflow/shared";
 import type { CardId } from "@taskflow/shared";
 import { useBoardStore, useCard } from "../store/boardStore.ts";
+import { CardHistory } from "./CardHistory.tsx";
 import { TagPicker } from "./TagPicker.tsx";
 
 const dateFormat = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" });
@@ -136,6 +137,11 @@ export function CardDetails({ id, onClose }: { id: CardId; onClose: () => void }
         <section className="space-y-2">
           <h3 className="text-sm font-semibold">Etiquetas</h3>
           <TagPicker cardId={id} />
+        </section>
+
+        <section className="space-y-3">
+          <h3 className="text-sm font-semibold">Histórico</h3>
+          <CardHistory cardId={id} />
         </section>
 
         <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-neutral-200 pt-4 text-xs text-neutral-500">

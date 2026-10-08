@@ -2,6 +2,7 @@ import type { z } from "zod";
 import type {
   BoardIdSchema,
   BoardSnapshotSchema,
+  CardEventSchema,
   CardIdSchema,
   CardSchema,
   ColumnIdSchema,
@@ -24,6 +25,7 @@ export type Tag = z.infer<typeof TagSchema>;
 export type Column = z.infer<typeof ColumnSchema>;
 export type Card = z.infer<typeof CardSchema>;
 export type BoardSnapshot = z.infer<typeof BoardSnapshotSchema>;
+export type CardEvent = z.infer<typeof CardEventSchema>;
 
 export type UpsertColumnInput = z.infer<typeof UpsertColumnSchema>;
 export type UpsertCardInput = z.infer<typeof UpsertCardSchema>;

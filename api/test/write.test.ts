@@ -8,13 +8,14 @@ import {
   ColumnSchema,
   TagIdSchema,
   TagSchema,
+  UpsertCardSchema,
 } from "@taskflow/shared";
 import request from "supertest";
 import { afterAll, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.ts";
 import { BOARD_ID } from "../src/board-id.ts";
 import { pool, query } from "../src/db.ts";
-import { HttpError, mapPostgresError, parseId } from "../src/http.ts";
+import { HttpError, mapPostgresError, parseBody, parseId } from "../src/http.ts";
 
 const app = createApp();
 
@@ -38,6 +39,17 @@ describe.skipIf(!process.env.DATABASE_URL)("Validação HTTP das rotas de escrit
 });
 
 describe("Helpers das rotas de escrita", () => {
+  it("rejeita datas inválidas no corpo do cartão antes de acessar o banco", () => {
+    for (const field of ["createdAt", "updatedAt"]) {
+      expect(() => parseBody(UpsertCardSchema, {
+        body: {
+          columnId: randomUUID(), title: "Cartão", description: null,
+          tagIds: [], position: 1, [field]: "data-inválida",
+        },
+      })).toThrow(HttpError);
+    }
+  });
+
   it("valida os IDs com os schemas compartilhados", () => {
     const id = randomUUID();
     expect(parseId(ColumnIdSchema, id)).toBe(id);
