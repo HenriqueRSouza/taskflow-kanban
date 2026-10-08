@@ -6,3 +6,26 @@
     @apply bg-ink font-sans antialiased;
   }
 }
+
+/* Acessibilidade: contorno de foco visível em tudo que recebe foco pelo
+   teclado (Tab), sem aparecer no clique do mouse (:focus-visible). */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
+    border-radius: 0.75rem;
+  }
+}
+
+/* Quem configurou o sistema para "reduzir movimento" (enjoo, vestibular)
+   não vê animações nem transições. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

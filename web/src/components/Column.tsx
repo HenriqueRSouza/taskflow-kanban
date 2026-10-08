@@ -1,16 +1,25 @@
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { ColumnId } from "@taskflow/shared";
+import { useShallow } from "zustand/react/shallow";
 import { useInlineEdit } from "../hooks/useInlineEdit.ts";
-import { useBoardStore, useCardIds, useColumn } from "../store/boardStore.ts";
+import { useBoardStore, useColumn } from "../store/boardStore.ts";
+import { useFilterStore } from "../store/filterStore.ts";
 import { AddCardForm } from "./AddCardForm.tsx";
 import { Card } from "./Card.tsx";
 
 export function Column({ id }: { id: ColumnId }) {
   const column = useColumn(id);
-  // Só a lista de IDs: a coluna re-renderiza quando um cartão entra, sai ou muda
-  // de ordem — editar o título de um cartão NÃO re-renderiza a coluna.
-  const cardIds = useCardIds(id);
+  const tagIds = useFilterStore((state) => state.tagIds);
+  const total = useBoardStore((state) => (state.cardOrder[id] ?? []).length);
+  const hasFilter = useBoardStore((state) => tagIds.some((tagId) => state.tags[tagId] !== undefined));
+  // Ignora etiquetas removidas; useShallow mantém a referência se os IDs não mudam.
+  const cardIds = useBoardStore(useShallow((state) => {
+    const ids = state.cardOrder[id] ?? [];
+    const activeTagIds = tagIds.filter((tagId) => state.tags[tagId] !== undefined);
+    if (activeTagIds.length === 0) return ids;
+    return ids.filter((cardId) => state.cards[cardId]?.tagIds.some((tagId) => activeTagIds.includes(tagId)));
+  }));
   const renameColumn = useBoardStore((s) => s.renameColumn);
   const removeColumn = useBoardStore((s) => s.removeColumn);
 
@@ -25,8 +34,8 @@ export function Column({ id }: { id: ColumnId }) {
   if (!column) return null;
 
   function handleRemove() {
-    const message = `Excluir a coluna "${column?.title}" e seus ${cardIds.length} cartões?`;
-    if (cardIds.length === 0 || window.confirm(message)) removeColumn(id);
+    const message = `Excluir a coluna "${column?.title}" e seus ${total} cartões?`;
+    if (total === 0 || window.confirm(message)) removeColumn(id);
   }
 
   return (
@@ -49,8 +58,11 @@ export function Column({ id }: { id: ColumnId }) {
             </button>
           )}
         </h2>
-        <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-neutral-600">
-          {cardIds.length}
+        <span
+          aria-label={hasFilter ? `${cardIds.length} de ${total} cartões visíveis` : undefined}
+          className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-neutral-600"
+        >
+          {hasFilter ? `${cardIds.length}/${total}` : total}
         </span>
         <button
           type="button"
@@ -70,6 +82,10 @@ export function Column({ id }: { id: ColumnId }) {
           ))}
         </ul>
       </SortableContext>
+
+      {hasFilter && cardIds.length === 0 && (
+        <p className="px-1 py-3 text-xs text-neutral-500">Nenhum cartão com essa etiqueta</p>
+      )}
 
       <AddCardForm columnId={id} />
     </section>
