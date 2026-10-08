@@ -1,0 +1,19 @@
+{
+  "name": "taskflow-kanban",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "packages/*",
+    "web",
+    "api"
+  ],
+  "scripts": {
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "dev:web": "npm run dev -w web",
+    "dev:api": "npm run dev -w api"
+  }
+}
