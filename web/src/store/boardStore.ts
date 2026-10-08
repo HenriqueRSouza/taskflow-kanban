@@ -167,7 +167,7 @@ export const useBoardStore = create<BoardStore>()(
 
       moveColumn: (id, toIndex) =>
         set((s) => {
-          if (!s.columns[id]) return {};
+          if (!s.columns[id]) return s;
           const { order, positions } = insertAt(s.columnOrder, id, toIndex, (c) => s.columns[c]?.position ?? 0);
           const columns = { ...s.columns };
           for (const [colId, position] of positions) {
@@ -219,7 +219,7 @@ export const useBoardStore = create<BoardStore>()(
       removeCard: (id) =>
         set((s) => {
           const card = s.cards[id];
-          if (!card) return {};
+          if (!card) return s;
           const { [id]: _removed, ...cards } = s.cards;
           const ids = s.cardOrder[card.columnId] ?? [];
           return { cards, cardOrder: { ...s.cardOrder, [card.columnId]: ids.filter((c) => c !== id) } };
@@ -229,7 +229,7 @@ export const useBoardStore = create<BoardStore>()(
         set((s) => {
           const card = s.cards[id];
           const target = s.cardOrder[toColumnId];
-          if (!card || !target) return {};
+          if (!card || !target) return s;
 
           const { order, positions } = insertAt(target, id, toIndex, (c) => s.cards[c]?.position ?? 0);
           const cards = { ...s.cards };
@@ -268,7 +268,7 @@ export const useBoardStore = create<BoardStore>()(
       toggleCardTag: (cardId, tagId) =>
         set((s) => {
           const card = s.cards[cardId];
-          if (!card || !s.tags[tagId]) return {};
+          if (!card || !s.tags[tagId]) return s;
           const tagIds = card.tagIds.includes(tagId)
             ? card.tagIds.filter((t) => t !== tagId)
             : [...card.tagIds, tagId];
