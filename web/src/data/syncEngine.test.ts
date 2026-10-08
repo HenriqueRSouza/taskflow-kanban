@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { BoardSnapshotSchema, CardIdSchema, ColumnIdSchema } from '@taskflow/shared';
-import type { BoardSnapshot, Card, CardId, Column, ColumnId, Tag, TagId } from '@taskflow/shared';
+import type { BoardSnapshot, Card, CardEvent, CardId, Column, ColumnId, Tag, TagId } from '@taskflow/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createDefaultBoard, denormalize, useBoardStore } from '../store/boardStore';
 import { ApiError, NetworkError } from './BoardRepository';
@@ -23,6 +23,11 @@ class MemoryBoardRepository implements BoardRepository {
   private record(call: string): void {
     this.calls.push(call);
     if (this.failure) throw this.failure;
+  }
+
+  async fetchCardHistory(id: CardId): Promise<CardEvent[]> {
+    this.record(`fetchCardHistory:${id}`);
+    return [];
   }
 
   async fetchBoard(): Promise<BoardSnapshot> {

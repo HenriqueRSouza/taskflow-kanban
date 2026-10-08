@@ -1,5 +1,5 @@
-import { ApiErrorSchema, BoardSnapshotSchema } from "@taskflow/shared";
-import type { BoardSnapshot, Card, CardId, Column, ColumnId, Tag, TagId } from "@taskflow/shared";
+import { ApiErrorSchema, BoardSnapshotSchema, CardHistorySchema } from "@taskflow/shared";
+import type { BoardSnapshot, Card, CardEvent, CardId, Column, ColumnId, Tag, TagId } from "@taskflow/shared";
 import { ApiError, NetworkError } from "./BoardRepository.ts";
 import type { BoardRepository } from "./BoardRepository.ts";
 
@@ -24,8 +24,10 @@ export class HttpBoardRepository implements BoardRepository {
     await this.request("DELETE", `/columns/${id}`);
   }
 
-  async upsertCard({ id, columnId, title, description, tagIds, position }: Card): Promise<void> {
-    await this.request("PUT", `/cards/${id}`, { columnId, title, description, tagIds, position });
+  async upsertCard({ id, ...card }: Card): Promise<void> {
+    // Envia também createdAt/updatedAt: o banco registra o histórico com a hora
+    // em que a ação aconteceu no aparelho (mesmo que tenha sido offline).
+    await this.request("PUT", `/cards/${id}`, card);
   }
 
   async deleteCard(id: CardId): Promise<void> {
@@ -38,6 +40,10 @@ export class HttpBoardRepository implements BoardRepository {
 
   async deleteTag(id: TagId): Promise<void> {
     await this.request("DELETE", `/tags/${id}`);
+  }
+
+  async fetchCardHistory(id: CardId): Promise<CardEvent[]> {
+    return CardHistorySchema.parse(await this.request("GET", `/cards/${id}/history`));
   }
 
   private async request(method: "GET" | "PUT" | "DELETE", path: string, body?: unknown): Promise<unknown> {

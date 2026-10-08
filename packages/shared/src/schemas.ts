@@ -60,8 +60,31 @@ export const BoardSnapshotSchema = z.object({
 
 export const UpsertColumnSchema = ColumnSchema.omit({ id: true });
 
-export const UpsertCardSchema = CardSchema.omit({ id: true, createdAt: true, updatedAt: true });
+// As datas vêm do aparelho (opcionais): uma ação feita offline às 10h e
+// sincronizada às 15h fica registrada às 10h. O servidor limita ao "agora".
+export const UpsertCardSchema = CardSchema.omit({ id: true }).partial({ createdAt: true, updatedAt: true });
 
 export const UpsertTagSchema = TagSchema.omit({ id: true });
+
+// ---- Histórico de movimentação do cartão ----
+// Gravado pelo próprio PostgreSQL (trigger) quando o cartão é criado ou muda de
+// coluna. Os títulos das colunas são copiados no momento do evento, para o
+// histórico continuar legível se a coluna for renomeada ou excluída.
+
+export const CARD_EVENT_TYPES = ["created", "moved"] as const;
+
+export const CardEventSchema = z.object({
+  id: z.number().int(),
+  cardId: CardIdSchema,
+  type: z.enum(CARD_EVENT_TYPES),
+  fromColumnId: ColumnIdSchema.nullable(),
+  fromColumnTitle: z.string().nullable(),
+  toColumnId: ColumnIdSchema,
+  toColumnTitle: z.string(),
+  occurredAt: z.iso.datetime({ offset: true }),
+});
+
+/** Resposta de GET /api/cards/:id/history, do evento mais antigo ao mais recente. */
+export const CardHistorySchema = z.array(CardEventSchema);
 
 export const ApiErrorSchema = z.object({ error: z.string() });

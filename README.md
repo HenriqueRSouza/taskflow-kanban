@@ -21,6 +21,7 @@ O usuário cria colunas e cartões, arrasta tudo com mouse, toque ou teclado, ed
 | ⌨️ | Arrasto por **teclado** (Tab → Espaço → setas → Espaço) com anúncios para leitor de tela |
 | 🏷️ | **Etiquetas** coloridas: criar, atribuir, remover e **filtrar** o quadro por etiqueta |
 | 📝 | **Painel de detalhes** do cartão: descrição, etiquetas, datas e exclusão |
+| 🕓 | **Histórico de movimentação** de cada cartão, gravado pelo banco: criação e cada troca de coluna, com data e hora |
 | 💾 | Persistência no **`localStorage`** (o quadro abre instantaneamente) |
 | ☁️ | Sincronização com **API REST + PostgreSQL**, com **modo offline** e reenvio automático |
 | 🐳 | Tudo sobe com **um comando** via Docker Compose |
@@ -42,6 +43,11 @@ docker compose up --build
 | PostgreSQL | `localhost:5432` (usuário, senha e banco: `taskflow`) |
 
 Na primeira execução o banco é criado com um quadro de exemplo.
+
+> **Já tinha o banco criado antes do histórico de movimentação?** O PostgreSQL só executa as migrations na criação do banco. Aplique a nova uma vez (ela pode ser executada mais de uma vez sem problema):
+> ```bash
+> docker compose exec -T db psql -U taskflow -d taskflow < api/migrations/003_card_history.sql
+> ```
 
 - **Parar:** `docker compose down`
 - **Apagar também os dados do banco:** `docker compose down -v`
@@ -108,7 +114,7 @@ taskflow-kanban/
 │   └── lib/             # ordenação fracionária, cores das etiquetas, utilitários
 ├── api/
 │   ├── src/routes/      # board, columns, cards, tags
-│   └── migrations/      # SQL de criação das tabelas e dados de exemplo
+│   └── migrations/      # SQL: tabelas, dados de exemplo e trigger do histórico
 ├── docs/PLANEJAMENTO.md # requisitos, arquitetura e cronograma
 └── docker-compose.yml
 ```
@@ -125,6 +131,13 @@ taskflow-kanban/
 
 **Camada de dados desacoplada.** Os componentes não conhecem a API: tudo passa pela interface `BoardRepository`. Migrar para outro back-end (ex.: Supabase) exige apenas uma nova implementação dessa interface.
 
+**Histórico de movimentação no banco.** Um *trigger* do PostgreSQL (`api/migrations/003_card_history.sql`) grava na tabela `card_events` a criação de cada cartão e toda troca de coluna, independentemente de quem fez a alteração. O evento guarda o nome das colunas daquele momento (o histórico continua correto se a coluna for renomeada ou excluída) e a hora em que a ação aconteceu no aparelho — um cartão movido offline às 10h e sincronizado às 15h fica registrado às 10h.
+
+```sql
+select to_char(occurred_at, 'DD/MM HH24:MI') as quando, type, from_column_title, to_column_title
+from card_events where card_id = '<id do cartão>' order by occurred_at;
+```
+
 **Acessibilidade.** Arrasto por teclado com instruções e anúncios em português, contorno de foco visível, painel de detalhes com `<dialog>` nativo (foco preso e Esc), respeito à preferência de "reduzir movimento" do sistema.
 
 ## API
@@ -135,6 +148,7 @@ taskflow-kanban/
 | GET | `/api/board` | Quadro completo (colunas, cartões e etiquetas) |
 | PUT / DELETE | `/api/columns/:id` | Cria/atualiza ou exclui uma coluna (e seus cartões) |
 | PUT / DELETE | `/api/cards/:id` | Cria/atualiza ou exclui um cartão (inclui suas etiquetas) |
+| GET | `/api/cards/:id/history` | Histórico de movimentação do cartão (criação e trocas de coluna) |
 | PUT / DELETE | `/api/tags/:id` | Cria/atualiza ou exclui uma etiqueta |
 
 Erros retornam `{ "error": "mensagem" }` com status `400` (dados inválidos), `409` (coluna ou etiqueta inexistente) ou `500`.
