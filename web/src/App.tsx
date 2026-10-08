@@ -1,11 +1,16 @@
 import { Board } from "./components/Board.tsx";
+import { SyncIndicator } from "./components/SyncIndicator.tsx";
+import { useBoardSync } from "./hooks/useBoardSync.ts";
 
 export function App() {
+  useBoardSync();
+
   return (
     <>
       <div className="h-9 text-[11px] text-white/80">
-        <div className="mx-auto flex h-full max-w-[1440px] items-center px-4 sm:px-8">
-          Quadro Kanban
+        <div className="mx-auto flex h-full max-w-[1440px] items-center justify-between px-4 sm:px-8">
+          <span>Quadro Kanban</span>
+          <SyncIndicator />
         </div>
       </div>
       <main className="min-h-[calc(100dvh-2.25rem)] rounded-t-3xl bg-white text-ink">

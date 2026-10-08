@@ -1,10 +1,10 @@
 import { BoardSnapshotSchema } from "@taskflow/shared";
 import { Router } from "express";
 import type { z } from "zod";
+import { BOARD_ID } from "../board-id.ts";
 import { query } from "../db.ts";
 import { HttpError } from "../http.ts";
 
-const BOARD_ID = "00000000-0000-4000-8000-000000000001";
 type SnapshotInput = z.input<typeof BoardSnapshotSchema>;
 type BoardRow = Pick<SnapshotInput, "id" | "title">;
 type ColumnRow = SnapshotInput["columns"][number];
