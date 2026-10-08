@@ -6,6 +6,7 @@ import { AddColumnForm } from "./AddColumnForm.tsx";
 import { CardPreview } from "./CardPreview.tsx";
 import { Column } from "./Column.tsx";
 import { ColumnPreview } from "./ColumnPreview.tsx";
+import { TagFilterBar } from "./TagFilterBar.tsx";
 
 export function Board() {
   // O Board só conhece a ORDEM das colunas; cada Column busca os próprios dados.
@@ -14,6 +15,7 @@ export function Board() {
 
   return (
     <section aria-label="Quadro de tarefas" className="mx-auto max-w-[1440px] px-4 pb-8 sm:px-8">
+      <TagFilterBar />
       {/* DndContext: "área" onde arrastar funciona; recebe sensores e os handlers. */}
       <DndContext {...contextProps}>
         <div className="flex snap-x items-start gap-4 overflow-x-auto pb-4">
