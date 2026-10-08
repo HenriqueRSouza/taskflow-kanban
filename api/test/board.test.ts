@@ -1,4 +1,4 @@
-import { BoardSnapshotSchema, CreateColumnSchema } from "@taskflow/shared";
+import { BoardSnapshotSchema, UpsertColumnSchema } from "@taskflow/shared";
 import request from "supertest";
 import { afterAll, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.ts";
@@ -13,14 +13,14 @@ afterAll(async () => {
 
 describe("Validação do corpo HTTP", () => {
   it("retorna o corpo validado pelo schema compartilhado", () => {
-    const body = parseBody(CreateColumnSchema, {
+    const body = parseBody(UpsertColumnSchema, {
       body: { title: "  A Fazer  ", position: 1, extra: true },
     });
     expect(body).toEqual({ title: "A Fazer", position: 1 });
   });
 
   it("lança HTTP 400 com a mensagem do primeiro erro de validação", () => {
-    const parse = () => parseBody(CreateColumnSchema, {
+    const parse = () => parseBody(UpsertColumnSchema, {
       body: { title: "", position: 1 },
     });
     expect(parse).toThrow(HttpError);

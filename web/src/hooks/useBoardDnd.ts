@@ -11,6 +11,7 @@ import {
 import type { Active, CollisionDetection, DragEndEvent, DragOverEvent, DragStartEvent, Over } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import type { ColumnId } from "@taskflow/shared";
+import { syncEngine } from "../data/sync.ts";
 import { readDragData } from "../lib/dnd.ts";
 import type { DragData } from "../lib/dnd.ts";
 import { useBoardStore } from "../store/boardStore.ts";
@@ -45,6 +46,8 @@ export function useBoardDnd() {
     const { cards, cardOrder } = useBoardStore.getState();
     snapshotRef.current = { cards, cardOrder };
     setActive(readDragData(dragged.data.current));
+    // Não envia nada ao servidor enquanto o item está "no ar"; só ao soltar.
+    syncEngine.pause();
   }
 
   function handleDragOver({ active: dragged, over }: DragOverEvent) {
@@ -63,6 +66,8 @@ export function useBoardDnd() {
     const data = readDragData(dragged.data.current);
     setActive(null);
     snapshotRef.current = null;
+    // resume() agenda o envio; o store já terá a posição final quando ele rodar.
+    syncEngine.resume();
     if (!data || !over) return;
 
     const state = useBoardStore.getState();
@@ -87,6 +92,7 @@ export function useBoardDnd() {
     if (snapshotRef.current) useBoardStore.setState(snapshotRef.current);
     snapshotRef.current = null;
     setActive(null);
+    syncEngine.resume();
   }
 
   return {

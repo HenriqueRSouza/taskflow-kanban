@@ -53,39 +53,15 @@ export const BoardSnapshotSchema = z.object({
 });
 
 // ---- Corpos de requisição da API ----
-// O cliente pode gerar o próprio UUID (crypto.randomUUID) para permitir a
-// criação otimista/offline; se omitido, o banco gera.
+// Escrita por "upsert": PUT /api/<recurso>/:id com o objeto completo cria ou
+// atualiza. Repetir a mesma requisição dá o mesmo resultado (idempotente), o que
+// permite ao front reenviar com segurança depois de uma falha de rede.
+// O ID vem da URL; o cliente gera os UUIDs (crypto.randomUUID).
 
-export const CreateColumnSchema = z.object({
-  id: ColumnIdSchema.optional(),
-  title: ColumnSchema.shape.title,
-  position: ColumnSchema.shape.position,
-});
+export const UpsertColumnSchema = ColumnSchema.omit({ id: true });
 
-export const UpdateColumnSchema = CreateColumnSchema.omit({ id: true })
-  .partial()
-  .refine((body) => Object.keys(body).length > 0, "Nada para atualizar");
+export const UpsertCardSchema = CardSchema.omit({ id: true, createdAt: true, updatedAt: true });
 
-export const CreateCardSchema = z.object({
-  id: CardIdSchema.optional(),
-  columnId: ColumnIdSchema,
-  title: CardSchema.shape.title,
-  description: CardSchema.shape.description.optional(),
-  position: CardSchema.shape.position,
-});
-
-export const UpdateCardSchema = CreateCardSchema.omit({ id: true })
-  .partial()
-  .refine((body) => Object.keys(body).length > 0, "Nada para atualizar");
-
-export const CreateTagSchema = z.object({
-  id: TagIdSchema.optional(),
-  name: TagSchema.shape.name,
-  color: TagColorSchema,
-});
-
-export const SetCardTagsSchema = z.object({
-  tagIds: z.array(TagIdSchema),
-});
+export const UpsertTagSchema = TagSchema.omit({ id: true });
 
 export const ApiErrorSchema = z.object({ error: z.string() });

@@ -6,15 +6,12 @@ import type {
   CardSchema,
   ColumnIdSchema,
   ColumnSchema,
-  CreateCardSchema,
-  CreateColumnSchema,
-  CreateTagSchema,
-  SetCardTagsSchema,
   TagColorSchema,
   TagIdSchema,
   TagSchema,
-  UpdateCardSchema,
-  UpdateColumnSchema,
+  UpsertCardSchema,
+  UpsertColumnSchema,
+  UpsertTagSchema,
 } from "./schemas.ts";
 
 export type BoardId = z.infer<typeof BoardIdSchema>;
@@ -28,12 +25,9 @@ export type Column = z.infer<typeof ColumnSchema>;
 export type Card = z.infer<typeof CardSchema>;
 export type BoardSnapshot = z.infer<typeof BoardSnapshotSchema>;
 
-export type CreateColumnInput = z.infer<typeof CreateColumnSchema>;
-export type UpdateColumnInput = z.infer<typeof UpdateColumnSchema>;
-export type CreateCardInput = z.infer<typeof CreateCardSchema>;
-export type UpdateCardInput = z.infer<typeof UpdateCardSchema>;
-export type CreateTagInput = z.infer<typeof CreateTagSchema>;
-export type SetCardTagsInput = z.infer<typeof SetCardTagsSchema>;
+export type UpsertColumnInput = z.infer<typeof UpsertColumnSchema>;
+export type UpsertCardInput = z.infer<typeof UpsertCardSchema>;
+export type UpsertTagInput = z.infer<typeof UpsertTagSchema>;
 
 /** Estado de sincronização de um item com a API — união discriminada. */
 export type SyncState =

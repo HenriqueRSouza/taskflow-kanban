@@ -217,17 +217,17 @@ create table card_tags (card_id uuid references cards(id) on delete cascade,
 ## 5. API REST
 
 | Método | Rota | Descrição |
-|--------|------|-----------|
+|--------|------|-------------|
 | GET | `/api/health` | Verificação do container |
 | GET | `/api/board` | Quadro completo (colunas, cartões, tags) |
-| POST | `/api/columns` | Cria coluna |
-| PATCH | `/api/columns/:id` | Renomeia / reposiciona coluna |
+| PUT | `/api/columns/:id` | Cria ou atualiza coluna (título, posição) |
 | DELETE | `/api/columns/:id` | Exclui coluna (e seus cartões) |
-| POST | `/api/cards` | Cria cartão |
-| PATCH | `/api/cards/:id` | Edita título, descrição, `columnId`, `position` |
+| PUT | `/api/cards/:id` | Cria ou atualiza cartão (coluna, título, descrição, posição, etiquetas) |
 | DELETE | `/api/cards/:id` | Exclui cartão |
-| POST | `/api/tags` | Cria etiqueta |
-| PUT | `/api/cards/:id/tags` | Define as etiquetas do cartão |
+| PUT | `/api/tags/:id` | Cria ou atualiza etiqueta |
+| DELETE | `/api/tags/:id` | Exclui etiqueta |
+
+**Escrita idempotente:** o front-end gera os IDs (UUID) e envia sempre o objeto completo com `PUT`. Repetir a mesma requisição produz o mesmo resultado, então o front pode reenviar com segurança depois de uma falha de rede. `DELETE` de um item inexistente também responde `204`. Chave estrangeira inexistente (ex.: cartão numa coluna que ainda não chegou ao banco) responde `409`, e o front tenta de novo.
 
 Todo corpo de requisição é validado com os schemas Zod de `packages/shared`. Erros retornam `{ error: string }` com status 400/404/500.
 
