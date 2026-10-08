@@ -9,8 +9,23 @@ if (!rootElement) {
   throw new Error('Elemento raiz da aplicação não encontrado.');
 }
 
-createRoot(rootElement).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-);
+async function bootstrap(root: HTMLElement): Promise<void> {
+  if (import.meta.env.DEV) {
+    const seed = new URLSearchParams(window.location.search).get('seed');
+    if (seed !== null && /^\d+$/.test(seed)) {
+      const cardCount = Number(seed);
+      if (Number.isSafeInteger(cardCount)) {
+        const { seedBoard } = await import('./lib/devSeed');
+        seedBoard(cardCount);
+      }
+    }
+  }
+
+  createRoot(root).render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  );
+}
+
+void bootstrap(rootElement);

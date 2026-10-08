@@ -1,3 +1,5 @@
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import type { CardId } from "@taskflow/shared";
 import { useInlineEdit } from "../hooks/useInlineEdit.ts";
 import { useBoardStore, useCard } from "../store/boardStore.ts";
@@ -12,10 +14,24 @@ export function Card({ id }: { id: CardId }) {
   // Hooks sempre no topo, antes de qualquer `return` (regra dos hooks).
   const title = useInlineEdit(card?.title ?? "", (next) => updateCard(id, { title: next }));
 
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+    data: { type: "card", id },
+    disabled: title.isEditing,
+  });
+
   if (!card) return null;
 
   return (
-    <li className="group rounded-2xl border border-neutral-200 bg-white p-3 shadow-sm transition hover:border-ink">
+    <li
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      {...attributes}
+      {...listeners}
+      className={`group touch-manipulation rounded-2xl border border-neutral-200 bg-white p-3 shadow-sm hover:border-ink ${
+        isDragging ? "opacity-40" : ""
+      }`}
+    >
       <div className="flex items-start gap-2">
         {title.isEditing ? (
           <input

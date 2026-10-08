@@ -1,3 +1,5 @@
+import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import type { ColumnId } from "@taskflow/shared";
 import { useInlineEdit } from "../hooks/useInlineEdit.ts";
 import { useBoardStore, useCardIds, useColumn } from "../store/boardStore.ts";
@@ -14,6 +16,12 @@ export function Column({ id }: { id: ColumnId }) {
 
   const title = useInlineEdit(column?.title ?? "", (next) => renameColumn(id, next));
 
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+    data: { type: "column", id },
+    disabled: title.isEditing,
+  });
+
   if (!column) return null;
 
   function handleRemove() {
@@ -22,8 +30,12 @@ export function Column({ id }: { id: ColumnId }) {
   }
 
   return (
-    <section className="flex w-[85vw] max-w-80 shrink-0 snap-start flex-col rounded-2xl bg-band p-3">
-      <header className="flex items-center gap-2 px-1 pb-3 pt-1">
+    <section
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={`flex w-[85vw] max-w-80 shrink-0 snap-start flex-col rounded-2xl bg-band p-3 ${isDragging ? "opacity-40" : ""}`}
+    >
+      <header {...attributes} {...listeners} className="flex touch-manipulation items-center gap-2 px-1 pb-3 pt-1">
         <h2 className="flex-1 text-sm font-semibold">
           {title.isEditing ? (
             <input
@@ -50,12 +62,14 @@ export function Column({ id }: { id: ColumnId }) {
         </button>
       </header>
 
-      <ul className="space-y-3">
-        {cardIds.map((cardId) => (
-          // key: identidade estável para o React saber qual item é qual ao reordenar.
-          <Card key={cardId} id={cardId} />
-        ))}
-      </ul>
+      <SortableContext items={cardIds} strategy={verticalListSortingStrategy}>
+        <ul className="min-h-2 space-y-3">
+          {cardIds.map((cardId) => (
+            // key: identidade estável para o React saber qual item é qual ao reordenar.
+            <Card key={cardId} id={cardId} />
+          ))}
+        </ul>
+      </SortableContext>
 
       <AddCardForm columnId={id} />
     </section>
