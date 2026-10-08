@@ -69,6 +69,8 @@ export function createSyncEngine(repo: BoardRepository, board: BoardStoreApi, op
   let suppressDiff = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let retryDelay = 2_000;
+  // Cartões cujas dependências (coluna/etiquetas) já foram reenfileiradas após um 409.
+  const requeuedDeps = new Set<string>();
   let unsubscribe: (() => void) | null = null;
 
   updateInfo({ pending: outbox.size });
@@ -94,9 +96,13 @@ export function createSyncEngine(repo: BoardRepository, board: BoardStoreApi, op
   }
 
   function enqueue(items: Dirty[]) {
+    markDirty(items);
+    schedule(debounceMs);
+  }
+
+  function markDirty(items: Dirty[]) {
     for (const item of items) outbox.set(dirtyKey(item), { item, version: ++version });
     saveOutbox();
-    schedule(debounceMs);
   }
 
   // ---------- envio ----------
@@ -114,9 +120,14 @@ export function createSyncEngine(repo: BoardRepository, board: BoardStoreApi, op
     clearTimeout(timer);
     updateInfo({ status: "syncing" });
 
+    let restart = false;
     try {
       for (const { item, version: sent } of ordered([...outbox.values()])) {
-        await send(item);
+        if (await send(item) === "requeued") {
+          restart = true; // dependências entraram na fila: recomeça na ordem certa
+          break;
+        }
+        requeuedDeps.delete(dirtyKey(item));
         // Só sai da fila se não mudou de novo durante o envio.
         if (outbox.get(dirtyKey(item))?.version === sent) outbox.delete(dirtyKey(item));
         saveOutbox();
@@ -132,33 +143,51 @@ export function createSyncEngine(repo: BoardRepository, board: BoardStoreApi, op
       flushing = false;
     }
 
+    if (restart) return schedule(0);
     // Mudanças que chegaram enquanto enviava.
     if (outbox.size > 0 && useSyncStore.getState().status === "idle") schedule(debounceMs);
   }
 
   /** Envia UMA entidade: se existe no estado atual → upsert; se não existe mais → delete. */
-  async function send(item: Dirty) {
+  async function send(item: Dirty): Promise<"sent" | "requeued"> {
     const state = board.getState();
     try {
       switch (item.kind) {
         case "column": {
           const column = state.columns[item.id];
-          return column ? await repo.upsertColumn(column) : await repo.deleteColumn(item.id);
+          await (column ? repo.upsertColumn(column) : repo.deleteColumn(item.id));
+          break;
         }
         case "card": {
           const card = state.cards[item.id];
-          return card ? await repo.upsertCard(card) : await repo.deleteCard(item.id);
+          await (card ? repo.upsertCard(card) : repo.deleteCard(item.id));
+          break;
         }
         case "tag": {
           const tag = state.tags[item.id];
-          return tag ? await repo.upsertTag(tag) : await repo.deleteTag(item.id);
+          await (tag ? repo.upsertTag(tag) : repo.deleteTag(item.id));
+          break;
         }
       }
+      return "sent";
     } catch (error) {
+      // 409 = o servidor não conhece a coluna ou uma etiqueta do cartão (ex.: o
+      // quadro padrão foi criado offline e nunca enviado, ou outra aba apagou a
+      // coluna). Reenfileira as dependências — que serão enviadas ANTES do cartão
+      // — e tenta de novo. Só uma vez por cartão, para não entrar em laço.
+      const card = item.kind === "card" ? state.cards[item.id] : undefined;
+      if (error instanceof ApiError && error.status === 409 && card && !requeuedDeps.has(dirtyKey(item))) {
+        requeuedDeps.add(dirtyKey(item));
+        markDirty([
+          { kind: "column", id: card.columnId },
+          ...card.tagIds.map((id): Dirty => ({ kind: "tag", id })),
+        ]);
+        return "requeued";
+      }
       // Dado inválido (400/404/422): tentar de novo não resolve. Descarta e segue.
       if (error instanceof ApiError && error.isPermanent) {
         console.warn(`Sincronização descartou ${dirtyKey(item)}:`, error.message);
-        return;
+        return "sent";
       }
       throw error;
     }
@@ -211,8 +240,13 @@ export function createSyncEngine(repo: BoardRepository, board: BoardStoreApi, op
     await flush();
     if (outbox.size > 0) return; // não conseguiu enviar: mantém os dados locais
     updateInfo({ status: "syncing" });
+    const versionBefore = version;
     try {
-      applyServerBoard(await repo.fetchBoard());
+      const snapshot = await repo.fetchBoard();
+      // O usuário mexeu no quadro enquanto o download acontecia: aplicar o
+      // snapshot apagaria essa mudança. Mantém o local e deixa a fila enviar.
+      const changedMeanwhile = version !== versionBefore || outbox.size > 0 || paused;
+      if (!changedMeanwhile) applyServerBoard(snapshot);
       updateInfo({ status: "idle", lastSyncedAt: new Date().toISOString(), lastError: null });
     } catch (error) {
       updateInfo({ status: error instanceof NetworkError ? "offline" : "error", lastError: describeError(error) });

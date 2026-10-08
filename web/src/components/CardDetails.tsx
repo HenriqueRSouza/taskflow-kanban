@@ -25,6 +25,19 @@ export function CardDetails({ id, onClose }: { id: CardId; onClose: () => void }
   const [description, setDescription] = useState(card?.description ?? "");
 
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const titleRef = useRef<HTMLInputElement>(null);
+  const descriptionRef = useRef<HTMLTextAreaElement>(null);
+
+  // O cartão mudou por fora (outra aba, servidor) enquanto o painel está aberto:
+  // atualiza o rascunho — a não ser que o usuário esteja digitando naquele campo.
+  const storedTitle = card?.title;
+  const storedDescription = card?.description;
+  useEffect(() => {
+    if (storedTitle !== undefined && document.activeElement !== titleRef.current) setTitle(storedTitle);
+  }, [storedTitle]);
+  useEffect(() => {
+    if (document.activeElement !== descriptionRef.current) setDescription(storedDescription ?? "");
+  }, [storedDescription]);
 
   // Abre o <dialog> como modal assim que ele existe no DOM; fecha ao desmontar.
   useEffect(() => {
@@ -83,6 +96,7 @@ export function CardDetails({ id, onClose }: { id: CardId; onClose: () => void }
               Detalhes do cartão
             </h2>
             <input
+              ref={titleRef}
               value={title}
               onChange={(event) => setTitle(event.target.value)}
               onBlur={save}
@@ -107,6 +121,7 @@ export function CardDetails({ id, onClose }: { id: CardId; onClose: () => void }
             Descrição
           </label>
           <textarea
+            ref={descriptionRef}
             id="card-description"
             value={description}
             onChange={(event) => setDescription(event.target.value)}

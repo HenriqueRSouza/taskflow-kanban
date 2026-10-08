@@ -25,7 +25,7 @@ export function Column({ id }: { id: ColumnId }) {
 
   const title = useInlineEdit(column?.title ?? "", (next) => renameColumn(id, next));
 
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
     id,
     data: { type: "column", id },
     disabled: title.isEditing,
@@ -44,7 +44,7 @@ export function Column({ id }: { id: ColumnId }) {
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={`flex w-[85vw] max-w-80 shrink-0 snap-start flex-col rounded-2xl bg-band p-3 ${isDragging ? "opacity-40" : ""}`}
     >
-      <header {...attributes} {...listeners} className="flex touch-manipulation items-center gap-2 px-1 pb-3 pt-1">
+      <header ref={setActivatorNodeRef} {...attributes} {...listeners} className="flex touch-manipulation items-center gap-2 px-1 pb-3 pt-1">
         <h2 className="flex-1 text-sm font-semibold">
           {title.isEditing ? (
             <input

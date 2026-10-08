@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
+import { TITLE_LIMITS } from "@taskflow/shared";
 import type { ColumnId } from "@taskflow/shared";
 import { useBoardStore } from "../store/boardStore.ts";
 
@@ -41,6 +42,7 @@ export function AddCardForm({ columnId }: { columnId: ColumnId }) {
         value={title}
         onChange={(event) => setTitle(event.target.value)}
         onKeyDown={(event) => event.key === "Escape" && close()}
+        maxLength={TITLE_LIMITS.card}
         placeholder="Título do cartão"
         aria-label="Título do novo cartão"
         className="w-full rounded-xl border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-ink focus:ring-2 focus:ring-brand-500"

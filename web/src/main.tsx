@@ -15,6 +15,10 @@ async function bootstrap(root: HTMLElement): Promise<void> {
     if (seed !== null && /^\d+$/.test(seed)) {
       const cardCount = Number(seed);
       if (Number.isSafeInteger(cardCount)) {
+        // Quadro de teste vai para outra chave do localStorage: o quadro real e a
+        // fila de sincronização ficam intocados.
+        const { useBoardStore } = await import('./store/boardStore');
+        useBoardStore.persist.setOptions({ name: 'taskflow-board-seed' });
         const { seedBoard } = await import('./lib/devSeed');
         seedBoard(cardCount);
       }
